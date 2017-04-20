@@ -26,10 +26,7 @@ public class MyFirstVerticleTest {
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
-    ArrayList<Point2D> data = loadData();
-	GradientVerticle simpleGradient = new GradientVerticle(data);
-	vertx.deployVerticle(simpleGradient,context.asyncAssertSuccess());
-
+    
     
   }
 
@@ -40,17 +37,20 @@ public class MyFirstVerticleTest {
 
   @Test
   public void testMyApplication(TestContext context) {
-    
-	  	  
-	System.out.println("-------------------------------------------------Test?-----------------------------------");
-	  
-	//async  = context.async();
-//		Main.startTime2 = System.currentTimeMillis();
-	ArrayList<Point2D> data = loadData();  
-    MainVerticle parallelImplementation = new MainVerticle(data,workers,NUM);
-	vertx.deployVerticle(parallelImplementation,context.asyncAssertSuccess());
-   
-	System.out.println("-------------------------------------------------End?-----------------------------------"); 
+//    
+//	  ArrayList<Point2D> data = loadData();
+//	  GradientVerticle simpleGradient = new GradientVerticle(data);
+//	  vertx.deployVerticle(simpleGradient,context.asyncAssertSuccess());
+//  	  
+////	System.out.println("-------------------------------------------------Test?-----------------------------------");
+////	  
+////	//async  = context.async();
+//////		Main.startTime2 = System.currentTimeMillis();
+////	ArrayList<Point2D> data = loadData();  
+////    MainVerticle parallelImplementation = new MainVerticle(data,workers,NUM);
+////	vertx.deployVerticle(parallelImplementation,context.asyncAssertSuccess());
+////   
+////	System.out.println("-------------------------------------------------End?-----------------------------------"); 
       
   }
   

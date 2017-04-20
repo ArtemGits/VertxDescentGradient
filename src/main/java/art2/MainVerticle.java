@@ -16,56 +16,35 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 
 
-
-/*
- * @author <a href="http://tfox.org">Tim Fox</a>
- */
 public class MainVerticle extends AbstractVerticle {
 
 	private static ArrayList<Point2D> dataSet; 
 	private static Bank[] banks; 
-	private static ArrayList<String> ID = new ArrayList<String>(10);
-	private static CountDownLatch cdl = new CountDownLatch(10);
-	private static SimpleGradientDescent grad = new SimpleGradientDescent();
-	public static final Phaser FINISH = new Phaser(10);
-    private static final double epsilon = 0.0001;
+    private  double epsilon;
  
-	private static double temp1;
 	
 	private static double sigma1 = 0.0;
 	private static double sigma2 = 0.0;
 	private int idw = 0;
 	private int idw2 = 0;
-	private static int workers1 = 10;
-	private static int workers2 = 10;
-	private int iterations = 0;
-	
+	private int iterations = 0;	
 	private  int m;
-	
-	private static double temp2;
-	private static double theta0 = 0.1;
-	private static double theta1 = 0.1;
-	private static double oldTheta0 = 0.0;
-	private static double oldTheta1 = 0.0;
-	private double alpha = 0.01;
-	private static double sum1 = 0.0, sum2 = 0.0;
-	
+	private  double theta0;
+	private  double theta1;
+	private  double oldTheta0 = 0.0;
+	private  double oldTheta1 = 0.0;
+	private  double alpha;
+	private int maxIterations;
 	private int workers;
 
-//	static Vertx vertx = Vertx.vertx(new VertxOptions().setWorkerPoolSize(10));
-//	
-//	
-//	  // Convenience method so you can run it in your IDE
-//	  public static void main(String[] args) {
-//	    MainVerticle main = new MainVerticle();
-//		tempFunc();
-//		vertx.deployVerticle("art2.MainVerticle");
-//		//Runner.runExample(MainVerticle.class);
-//	  }
-//	  
 	  
-	  public MainVerticle(ArrayList<Point2D> data, int workers,int val) {
+	  public MainVerticle(ArrayList<Point2D> data, int workers,int val, double alpha,int maxIterations,double epsilon,double theta0, double theta1) {
 		  m = val;
+		  this.alpha = alpha;
+		  this.theta0=theta0;
+		  this.theta1 = theta1;
+		  this.epsilon = epsilon;
+		  this.maxIterations = maxIterations; 
 		  this.workers = workers;
 		  dataSet = data;
 		  banks = new Bank[workers];
@@ -77,7 +56,7 @@ public class MainVerticle extends AbstractVerticle {
 		  int bankSize =  dataSet.size() / workers;
 		  int ostatok = dataSet.size() % workers;
 		  int iterator = 0;
-		  System.out.println(bankSize + " " + ostatok);
+		  //bankSize.System.out.println(bankSize + " " + ostatok);
 			for(int i=0; i<workers; i++) {
 				banks[i] = new Bank();
 				
@@ -116,28 +95,10 @@ public class MainVerticle extends AbstractVerticle {
 	  
 	  @Override
 	  public void start() throws Exception {
-		  //long startTime = System.currentTimeMillis();	
 		  calc();
-		  //long endTime = System.currentTimeMillis();
-		 // System.out.println("Time: " + (endTime - startTime));
-		//-------------------------------------------
 	  }
+
 	  public void calc() {
-		 // double initialTheta0  =0.1;
-		//	double initialTheta1 = 0.1;
-			
-		//	theta0 = initialTheta0;
-		//	theta1 = initialTheta1;
-		//	double oldTheta0 = 0, oldTheta1 = 0;
-			
-			//worker.setThetas(theta0, theta1);
-			
-			
-		//System.out.println("[Main] Running in " + Thread.currentThread().getName());
-		
-		//System.out.println(banks[0].getBank());
-		
-		
 		for(int i = 0; i<workers; i++) {
 			 vertx.deployVerticle(new WorkerVerticle(banks[i].getBank()),new DeploymentOptions().setWorker(true), res-> {
 				 if(res.succeeded()) {
@@ -145,11 +106,6 @@ public class MainVerticle extends AbstractVerticle {
 				 }
 			 }); 
 		}
-
-		
-		//for(int j = 0; j<2; j++) {
-			
-			
 			//have async result
 			vertx.eventBus().consumer("temp1", message -> {
 				  sigma1 = sigma1 + (double)message.body();
@@ -163,7 +119,6 @@ public class MainVerticle extends AbstractVerticle {
 						 sigma1 = 0.0;
 						 
 						 idw = 0;
-						 //WorkerVerticle.setTheta0(theta0);
 						 message.reply(theta0);
 					 }	  
 				//message.reply(0.0);	      
@@ -179,7 +134,6 @@ public class MainVerticle extends AbstractVerticle {
 							 //System.out.println("Theta1: " + theta1);
 							 sigma2 = 0.0;
 							 idw2 = 0;
-							 //WorkerVerticle.setTheta1(theta1);
 							 message.reply(theta1);
 						 }
 
@@ -187,22 +141,10 @@ public class MainVerticle extends AbstractVerticle {
 			 });
 			 
 			 vertx.eventBus().consumer("NEXT", v->{
-				
-				 	//System.out.println("new Hope");
-					//System.out.println("Theta0: " + theta0 + "Theta1: " + theta1);
-					//System.out.println("");
-				 	
-		            
 				 	iterations++;
 					//System.out.println("Iterations: "+ iterations + " oldThetha0: " + oldTheta0 + " oldTheta1: " + oldTheta1 );
-					if ( (iterations < 10_000) && ( !(hasConverged(oldTheta0, theta0) && hasConverged(oldTheta1, theta1)) ) )  {
-						try {
-							 
-						//	start();
-
-							
-							
-							oldTheta1 = theta1;
+					if ( (iterations < maxIterations) && ( !(hasConverged(oldTheta0, theta0) && hasConverged(oldTheta1, theta1)) ) )  {
+											oldTheta1 = theta1;
 							oldTheta0 = theta0;
 							for(int i = 0; i<workers; i++) {
 								 vertx.deployVerticle(new WorkerVerticle(banks[i].getBank()),new DeploymentOptions().setWorker(true), res-> {
@@ -211,13 +153,6 @@ public class MainVerticle extends AbstractVerticle {
 									 }
 								 }); 
 							}
-
-					
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-
 					} else {
 						Main.endTime2 = System.currentTimeMillis();    
 					 	System.out.println("new Hope");
@@ -225,34 +160,10 @@ public class MainVerticle extends AbstractVerticle {
 						System.out.println("Time: " + (Main.endTime2 - Main.startTime2));
 					}
 			 });
-			 
-			// FINISH.awaitAdvance(0);
-			
-			 
-			 
-		//}
-		
-		
 	  }
 				  
-		    
-public void setTheta0(double val) {
-	theta0 = val;
-}
-public void setTheta1(double val) {
-	theta1 = val;
-}
-
-//public get
 	  
-	  
-	  
-	  
-	  
-		public  boolean hasConverged(double old, double current) {
-			 
-			// System.out.println((current - old) < epsilon);
-			// System.out.println(epsilon);
+	public  boolean hasConverged(double old, double current) {
 		        return ( current - old) < epsilon;
 		    }
 	  

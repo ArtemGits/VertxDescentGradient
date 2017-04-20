@@ -13,12 +13,21 @@ import io.vertx.core.Vertx;
 
 public class GradientVerticle extends AbstractVerticle {
 
-    private static final double epsilon = 0.0001;
+    private static double epsilon;
     private ArrayList<Point2D> data;
-   
+    private static double alpha;
+    private static int maxIterations;
+    private static double theta0;
+    private static double theta1;
   
-    public GradientVerticle(ArrayList<Point2D> data) {
+    public GradientVerticle(ArrayList<Point2D> data, double alpha, int maxIterations, double epsilon, double theta0, double theta1) {
     	this.data = data;
+    	this.alpha = alpha;
+    	this.maxIterations = maxIterations;
+    	this.epsilon = epsilon;
+    	this.theta0 = theta0;
+    	this.theta1 = theta1;
+    	
     }
     
     @Override
@@ -28,27 +37,13 @@ public class GradientVerticle extends AbstractVerticle {
     }
     
     public void run() {
-        //data = loadData();
-        double alpha = 0.01;
-        int maxIterations = 10_000;
       vertx.executeBlocking(future -> {
-       // System.out.println("hello");
-        Point2D result  = singleVarGradientDescent(data, 0.1, 0.1, alpha, maxIterations);;
+        Point2D result  = singleVarGradientDescent(data, theta0, theta1, alpha, maxIterations);;
         future.complete(result);
       }, res -> {
     	Main.endTime1 = System.currentTimeMillis();    
         System.out.println("The result from GradientVerticle is: " + res.result() + " Time: " + (Main.endTime1 - Main.startTime1));
-      });
-        
-//        vertx.executeBlocking(future -> {
-//        	 
-//            
-//        }, res -> {
-//        	System.out.printf("theta0 = %f, theta1 = %f", finalTheta.getX(), finalTheta.getY());
-//            System.out.println("");
-//        });
-       
-        
+      });     
     }
     
     

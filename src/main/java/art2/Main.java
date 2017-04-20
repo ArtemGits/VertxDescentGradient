@@ -12,19 +12,24 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 
 public class Main extends AbstractVerticle {
-	private static int workers = 10;
-	private static int NUM = 1_000;
-	private static Vertx vertx = Vertx.vertx(new VertxOptions().setWorkerPoolSize(10));
+	private static final int workers = 8;
+	private static final int POINTS = 1_000_000;
+	private static final double epsilon = 0.0001;
+	private static final double alpha = 0.01; //step
+	private static final int maxIterations = 10_00;
+	private static final double theta0 = 0.1; //start point
+	private static final double theta1 = 0.1;
+	private static Vertx vertx = Vertx.vertx(new VertxOptions().setWorkerPoolSize(workers));
 	public static long startTime1;	
 	public static long endTime1;
 	public static long startTime2;	
 	public static long endTime2;
-	  // Convenience method so you can run it in your IDE
-	  public static void main(String[] args) {
+
+	public static void main(String[] args) {
 		  
 		ArrayList<Point2D> data = loadData();
 		startTime1 = System.currentTimeMillis();  
-		GradientVerticle simpleGradient = new GradientVerticle(data);
+		GradientVerticle simpleGradient = new GradientVerticle(data,alpha,maxIterations,epsilon,theta0,theta1);
 		vertx.deployVerticle(simpleGradient, res-> {
 			
 //			if(res.succeeded()) {
@@ -36,7 +41,7 @@ public class Main extends AbstractVerticle {
 //			}
 		});
 		startTime2 = System.currentTimeMillis();    
-	    MainVerticle parallelImplementation = new MainVerticle(data,workers,NUM);
+	    MainVerticle parallelImplementation = new MainVerticle(data,workers,POINTS,alpha,maxIterations,epsilon,theta0,theta1);
 		vertx.deployVerticle(parallelImplementation, res -> {
 //			if(res.succeeded()) {
 //				vertx.undeploy(res.result(), v -> {
@@ -51,7 +56,7 @@ public class Main extends AbstractVerticle {
 	  public static ArrayList<Point2D> loadData() {
 	    	 ArrayList<Point2D> data = new ArrayList<>();
 	         Random rand = new Random();
-	         for(int i=0; i<NUM; i++) {
+	         for(int i=0; i<POINTS; i++) {
 	         	data.add(new Point2D.Double(new BigDecimal(rand.nextDouble()).setScale(2, RoundingMode.UP).doubleValue(), new BigDecimal(rand.nextDouble()).setScale(2, RoundingMode.UP).doubleValue()));
 
 	         }
@@ -65,9 +70,10 @@ public class Main extends AbstractVerticle {
 	  
 	  @Override
 	  public void start() {
+	 
 		  ArrayList<Point2D> data = loadData();
-		  
-			GradientVerticle simpleGradient = new GradientVerticle(data);
+			startTime1 = System.currentTimeMillis();  
+			GradientVerticle simpleGradient = new GradientVerticle(data,alpha,maxIterations,epsilon,theta0,theta1);
 			vertx.deployVerticle(simpleGradient, res-> {
 				
 //				if(res.succeeded()) {
@@ -78,8 +84,8 @@ public class Main extends AbstractVerticle {
 //					
 //				}
 			});
-			  
-		    MainVerticle parallelImplementation = new MainVerticle(data,workers,NUM);
+			startTime2 = System.currentTimeMillis();    
+		    MainVerticle parallelImplementation = new MainVerticle(data,workers,POINTS,alpha,maxIterations,epsilon,theta0,theta1);
 			vertx.deployVerticle(parallelImplementation, res -> {
 //				if(res.succeeded()) {
 //					vertx.undeploy(res.result(), v -> {
@@ -89,6 +95,7 @@ public class Main extends AbstractVerticle {
 //					
 //				}
 			});
+		  
 	  }
 
 	
